@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>금보 먹방 받아먹기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+<style>
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+  html,body{height:100%;margin:0;overscroll-behavior:none}
+  body{font-family:'Jua',system-ui,sans-serif;max-width:430px;margin:0 auto;padding:0 12px 10px;background:linear-gradient(#ffe9c7,#ffd6e0);height:100vh;height:100dvh;display:flex;flex-direction:column;overflow:hidden;color:#3b2a20;touch-action:manipulation}
+  header{flex:none;display:flex;align-items:center;justify-content:space-between;background:#fff;border-radius:16px;padding:5px 12px;margin-top:8px;box-shadow:0 3px 0 #f0b9a0}
+  header h1{margin:0;font-size:18px;font-weight:400;color:#e85d75}
+  #kg{font-size:30px;line-height:1}#kg small{font-size:14px;color:#a08070}
+  .hud{flex:none;display:flex;align-items:center;gap:8px;margin:6px 0;font-size:15px}
+  .hud .bar{flex:1;height:12px;background:#fff;border-radius:6px;overflow:hidden;box-shadow:inset 0 1px 2px #0002}
+  .hud .bar i{display:block;height:100%;width:100%;background:linear-gradient(90deg,#80cbc4,#26a69a)}
+  #hearts{letter-spacing:1px}#combo{min-width:62px;text-align:right;color:#e53935}
+  #wrap{flex:1;min-height:0;position:relative;border-radius:18px;overflow:hidden;box-shadow:0 5px 0 #d9907a;background:#fff3d6}
+  canvas{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);touch-action:none;display:block}
+  #chat{flex:none;display:flex;align-items:center;gap:8px;background:#fff;border-radius:14px;padding:5px 10px;margin-top:8px;min-height:38px;font-size:14px;box-shadow:0 2px 0 #f0b9a0;line-height:1.3}
+  #chat i{width:28px;height:28px;border-radius:50%;background:linear-gradient(45deg,#f9a825,#e91e63,#8e24aa);font-style:normal;display:grid;place-items:center;font-size:15px;flex:none}
+  #chat b{font-weight:400;color:#8e24aa;margin-right:4px}
+  #chat.new{animation:slide .3s}@keyframes slide{from{transform:translateX(-24px);opacity:0}}
+  button{font-family:inherit;border:0;border-radius:14px;cursor:pointer;touch-action:manipulation;color:#3b2a20;background:#fff;box-shadow:0 4px 0 var(--c,#f0b9a0);padding:10px 14px;font-size:18px}
+  button:active{transform:translateY(3px);box-shadow:0 1px 0 var(--c,#f0b9a0)}
+  button small{display:block;font-size:11px;color:#9a7a6a;margin-top:2px}
+  .easy{--c:#66bb6a}.mid{--c:#ffb300}.hell{--c:#e53935}.etc{--c:#ba68c8}.go{--c:#ff8a65}
+  #mute,#help{background:none;box-shadow:none;font-size:19px;padding:0 6px;border-radius:8px}
+  /* 시작/결과 오버레이 */
+  .ov{position:absolute;inset:0;z-index:5;display:none;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:16px;background:#000a;text-align:center;color:#fff}
+  .ov.on{display:flex}
+  .ov h2{margin:0;font-size:28px;font-weight:400;color:#ffd600;text-shadow:0 2px 0 #000}
+  .ov p{margin:0;font-size:14px;line-height:1.5}
+  .ov .row{display:grid;gap:8px;width:86%}
+  .ov .row.two{grid-template-columns:1fr 1fr}
+  .ov .big{font-size:46px;line-height:1;color:#fff}
+  .ov img{max-width:84%;max-height:36%;border-radius:12px;box-shadow:0 5px 0 #0006}
+  .ov .tag{background:#fff;color:#3b2a20;border-radius:12px;padding:6px 12px;font-size:15px}
+  .ov b{font-weight:400;color:#ffd600}
+  /* 도움말 */
+  #helpbox{border:0;border-radius:20px;width:92vw;max-width:400px;max-height:84dvh;padding:0;font-family:inherit;color:#3b2a20;box-shadow:0 10px 0 #0003}
+  #helpbox::backdrop{background:#000a}#helpbox:focus,#helpbox *:focus{outline:none}
+  #helpbox .in{max-height:calc(84dvh - 64px);overflow-y:auto;padding:16px 16px 4px;font-size:14px;line-height:1.55}
+  #helpbox h2{margin:0 0 8px;font-weight:400;color:#e85d75;text-align:center;font-size:22px}
+  #helpbox h3{margin:12px 0 2px;font-weight:400;font-size:16px;color:#8e24aa}
+  #helpbox p{margin:0}#helpbox b{font-weight:400;color:#e53935}#helpbox .ft{padding:8px 16px 14px}
+</style>
+</head>
+<body>
+<header><h1>🍗 금보 먹방 받아먹기</h1><div style="display:flex;align-items:center"><button id="mute"></button><button id="help" aria-label="도움말">❓</button><div id="kg"></div></div></header>
+<div class="hud"><span id="hearts"></span><div class="bar"><i id="tm"></i></div><span id="combo"></span></div>
+<div id="wrap">
+  <canvas id="cv"></canvas>
+  <div class="ov on" id="menu">
+    <img src="img/face.png" alt="" style="max-height:24%">
+    <h2>금보 먹방 받아먹기</h2>
+    <p>하늘에서 떨어지는 음식을 <b>금보 입에 쏙쏙</b>!<br>100kg 찍으면 돼지엔딩 🐷 (=클리어)<br>🥗🏋️ 건강한 건 <b>탭해서 쳐내기</b></p>
+    <div class="row" id="diffs">
+      <button class="easy" data-d="easy">😋 쉬움<small>여유롭게 먹방</small></button>
+      <button class="mid" data-d="mid">🔥 보통<small>적당히 정신없음</small></button>
+      <button class="hell" data-d="hell">💀 지옥<small>지코치님 총출동</small></button>
+    </div>
+    <p id="bestline"></p>
+  </div>
+  <div class="ov" id="over"></div>
+</div>
+<div id="chat"></div>
+
+<dialog id="helpbox"><div class="in">
+  <h2>🍗 금보 먹방 받아먹기 도움말</h2>
+  <h3>🎯 목표</h3>
+  <p>하늘에서 떨어지는 음식을 먹여서 <b>60kg → 100kg</b>! 100kg을 찍으면 <b>돼지엔딩(클리어)</b> 🐷<br>제한시간(쉬움 90초 · 보통 75초 · 지옥 65초) 안에 못 찍으면 그때 체중이 점수야.</p>
+  <h3>🕹️ 조작</h3>
+  <p>화면을 <b>좌우로 끌면</b> 금보가 따라와 (살찔수록 느려짐 ㅋㅋ)<br>건강한 음식 🥗🏋️🥦 은 <b>탭해서 쳐내기</b>. 놓쳐서 금보가 먹으면 다이어트 당해서 ❤️가 깎여.</p>
+  <h3>🍽️ 음식</h3>
+  <p>🍗 치킨 +1.0 · 🍜 불닭볶음면 +0.8 · 🍶 소주 +0.6 · 🥃 양주 +0.8 · 🍕 피자 +1.0<br>🎂 케이크 +2.0 (가끔) · ✨ <b>황금 치킨</b> +5.0 (아주 가끔!)<br>연속으로 받아먹으면 <b>콤보</b>로 더 쪄! 건강한 걸 먹으면 콤보가 끊겨.</p>
+  <h3>💡 팁</h3>
+  <p>몸이 커질수록 입이 커져서 받기 쉬워지지만 이동이 느려져. 건강한 건 눈에 띄는 대로 바로 쳐내기!</p>
+  <h3>🎚️ 난이도</h3>
+  <p>쉬움: 느리고 건강한 음식 적음, 시간 넉넉 · 보통 · 지옥: 빠르고 건강한 음식 가득, ❤️ 2개뿐</p>
+</div><div class="ft"><button id="helpok" class="go" style="width:100%">알겠어, 시작!</button></div></dialog>
+
+<script src="sfx.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const W = 360, H = 520, FEET = H - 14;
+const cv = $('cv'), cx = cv.getContext('2d');
+const rnd = (a, b) => a + Math.random() * (b - a);
+
+// 난이도: 낙하 간격(초) / 낙하 속도 / 건강한 음식 비율 / 하트
+const DIFF = {
+  easy: { name: '쉬움 😋', gap: 0.74, speed: 135, bad: 0.12, hearts: 5, time: 90 },
+  mid: { name: '보통 🔥', gap: 0.8, speed: 185, bad: 0.26, hearts: 3, time: 75 },
+  hell: { name: '지옥 💀', gap: 0.62, speed: 240, bad: 0.38, hearts: 2, time: 65 },
+};
+const FOODS = [['🍗', 0.5, 30], ['🍜', 0.4, 24], ['🍶', 0.3, 18], ['🥃', 0.4, 12], ['🍕', 0.5, 12], ['🎂', 1.0, 4]]; // [이모지, +kg, 가중치]
+const BADS = [['🥗', 1.0], ['🏋️', 1.4], ['🥦', 0.7]];
+const FRIENDS = { 치킨창민: '🍗', 소주래인: '🍶', 누들석민: '🍜', 양주서영: '🥃', 갈비겨레: '🙄', 관장님: '🥊', 지코치님: '🏋️' };
+const SAY = {
+  start: [['지코치님', '회원님 오늘은 뭐 드시나요? 대체 살 언제 빼요?'], ['소주래인', '금보 입 벌리고 대기 중 ㅋㅋㅋ']],
+  combo: [['치킨창민', '금보 먹방 폼 미쳤다 ㅋㅋㅋ'], ['갈비겨레', '금보 조용 금보 불닭먹어'], ['누들석민', '입이 자동 흡입기네']],
+  golden: [['치킨창민', '황금 치킨 먹었다고?? 금보 인생 최고의 날'], ['양주서영', '금보 눈이 반짝였다 ㅋㅋㅋ']],
+  bad: [['지코치님', '오! 건강한 거 드셨네요 회원님!'], ['소주래인', '금보 샐러드 먹었다 ㅋㅋㅋ 기절각'], ['관장님', '그 의지로 체육관 와라']],
+  m70: [['소주래인', '금보 70kg ㅋㅋ 아직 귀여운 단계'], ['지코치님', '회원님 이미 늦었어요...']],
+  m80: [['치킨창민', '80kg 돌파 축하 🍗'], ['누들석민', '바지 터지는 소리 들림']],
+  m90: [['소주래인', '90kg ㅋㅋㅋㅋ 곧 100이다'], ['갈비겨레', '금보 조용 체중계 비명 지르는 중']],
+  win: [['치킨창민', '돼지엔딩 달성 ㅋㅋㅋㅋ 역시 우리 편'], ['소주래인', '금보 100kg 인증 완료 단톡방 박제함 📸']],
+  hearts: [['지코치님', '회원님 다이어트 당했어요... 축하합니다?'], ['관장님', '체육관 등록은 언제 해요']],
+  time: [['소주래인', '시간 끝 ㅋㅋ 금보 아직 100 못 찍음'], ['지코치님', '아쉽네요 회원님. 근데 살은 대체 언제 빼요?']],
+};
+
+const faceImg = new Image(), pigImg = new Image(); faceImg.src = 'img/face.png'; pigImg.src = 'img/face-pig.png';
+
+let G = null, raf = 0, last = 0, diff = 'mid', best = JSON.parse(localStorage.getItem('hkm-best') || '{}');
+
+function chat([who, text]) {
+  const c = $('chat'); c.innerHTML = `<i>${FRIENDS[who] || who[0]}</i><span><b>${who}</b>${text}</span>`;
+  c.classList.remove('new'); void c.offsetWidth; c.classList.add('new');
+}
+const say = k => chat(SAY[k][Math.floor(Math.random() * SAY[k].length)]);
+
+function fit() { // 캔버스를 래퍼 크기에 맞춰 비율 유지 (레티나 대응)
+  const w = $('wrap'), s = Math.min(w.clientWidth / W, w.clientHeight / H), dpr = Math.min(devicePixelRatio || 1, 3);
+  cv.width = W * dpr; cv.height = H * dpr; cv.style.width = W * s + 'px'; cv.style.height = H * s + 'px';
+  cx.setTransform(dpr, 0, 0, dpr, 0, 0); cv.dataset.scale = s;
+}
+addEventListener('resize', fit);
+
+function newGame(d) {
+  const D = DIFF[d]; diff = d;
+  G = { d, D, w: 60, hearts: D.hearts, t: D.time, el: 0, items: [], fx: [], px: W / 2, tx: W / 2, spawn: 0.5, combo: 0, maxCombo: 0, eaten: 0, pulse: 0, hurt: 0,
+    phase: 'play', milestone: 0, golden: false, healthyHit: 0, swats: 0 };
+  $('menu').classList.remove('on'); $('over').classList.remove('on');
+  say('start'); hud(); last = performance.now(); cancelAnimationFrame(raf); raf = requestAnimationFrame(loop);
+}
+
+const fat = () => Math.max(0, Math.min(1.1, (G.w - 50) / 50));
+const bodyW = () => 54 + fat() * 80;
+const hud = () => {
+  $('kg').innerHTML = (G ? G.w : 60).toFixed(1) + '<small>kg</small>';
+  $('hearts').textContent = G ? '❤️'.repeat(Math.max(0, G.hearts)) + '🖤'.repeat(Math.max(0, G.D.hearts - G.hearts)) : '';
+  $('tm').style.width = (G && G.D ? Math.max(0, G.t / G.D.time * 100) : 100) + '%';
+  $('combo').textContent = G && G.combo >= 3 ? `🔥 x${G.combo}` : '';
+};
+
+function spawn() {
+  const g = G, bad = Math.random() < g.D.bad;
+  const ramp = 1 + Math.min(0.45, g.el / 100); // 시간이 갈수록 빨라짐
+  let it;
+  if (bad) { const [e, kg] = BADS[Math.floor(rnd(0, BADS.length))]; it = { e, kg: -kg, bad: true }; }
+  else if (Math.random() < 0.03) it = { e: '🍗', kg: 3, golden: true };
+  else { let r = rnd(0, FOODS.reduce((a, f) => a + f[2], 0)); const f = FOODS.find(f => (r -= f[2]) < 0) || FOODS[0]; it = { e: f[0], kg: f[1] }; }
+  Object.assign(it, { x: rnd(26, W - 26), y: -30, vy: g.D.speed * ramp * rnd(0.85, 1.35), rot: rnd(-0.4, 0.4), vr: rnd(-1.5, 1.5), s: it.golden ? 44 : 34 });
+  g.items.push(it);
+}
+
+function floatText(x, y, txt, color) { G.fx.push({ x, y, txt, color, life: 0.9 }); }
+
+function loop(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  for (let i = 0; i < (window.__ts || 1) && G.phase === 'play'; i++) update(dt); // __ts: 테스트용 배속
+  draw();
+  if (G.phase === 'play') raf = requestAnimationFrame(loop);
+}
+function update(dt) {
+  const g = G;
+  {
+    g.el += dt; g.t -= dt; g.pulse = Math.max(0, g.pulse - dt * 4); g.hurt = Math.max(0, g.hurt - dt * 2);
+    // 이동: 살찔수록 따라오는 속도가 느려짐
+    const k = 1 - Math.pow(1 - (0.30 - fat() * 0.17), dt * 60); g.px += (g.tx - g.px) * k;
+    g.px = Math.max(bodyW() / 2, Math.min(W - bodyW() / 2, g.px));
+    g.spawn -= dt; if (g.spawn <= 0) { spawn(); g.spawn = g.D.gap / (1 + Math.min(0.45, g.el / 100)) * rnd(0.7, 1.3); }
+    const mouthY = FEET - 36 - (60 + fat() * 14) - 40; // 머리 위쪽부터 판정
+    for (const it of g.items) {
+      it.y += it.vy * dt; it.rot += it.vr * dt;
+      if (!it.dead && it.y > mouthY && it.y < FEET - 6 && Math.abs(it.x - g.px) < bodyW() / 2 + 14) { it.dead = true; eat(it); }
+      if (it.y > H + 30) it.dead = true;
+    }
+    g.items = g.items.filter(i => !i.dead);
+    for (const f of g.fx) { f.life -= dt; f.y -= 40 * dt; } g.fx = g.fx.filter(f => f.life > 0);
+    if (g.t <= 0) return finish('time');
+    if (g.hearts <= 0) return finish('hearts');
+    hud();
+  }
+}
+
+function eat(it) {
+  const g = G;
+  if (it.bad) {
+    g.hearts--; g.combo = 0; g.hurt = 1; g.w = Math.max(50, g.w + it.kg); g.healthyHit++;
+    Sfx.play('fail'); navigator.vibrate?.(120); floatText(g.px, FEET - 130, `${it.e} ${it.kg}kg 💔`, '#26a69a'); say('bad'); return;
+  }
+  g.combo++; g.maxCombo = Math.max(g.maxCombo, g.combo); g.eaten++;
+  const bonus = Math.min(0.6, g.combo * 0.03) * (it.kg > 0 ? 1 : 0), gain = it.kg + (it.golden ? 0 : bonus);
+  g.w = Math.min(100, g.w + gain); g.pulse = 1; Sfx.play('chomp'); if (g.w >= 85) Sfx.play('oink');
+  floatText(g.px, FEET - 130, `+${gain.toFixed(1)}kg`, it.golden ? '#ffb300' : '#e53935');
+  if (it.golden) { Sfx.play('fanfare'); window.confetti?.({ particleCount: 70, spread: 70, origin: { y: 0.5 }, zIndex: 30 }); say('golden'); }
+  else if (g.combo > 0 && g.combo % 10 === 0) say('combo');
+  for (const m of [70, 80, 90]) if (g.w >= m && g.milestone < m) { g.milestone = m; say('m' + m); Sfx.play('thud'); }
+  if (g.w >= 100) finish('win');
+}
+
+// ── 그리기 ──
+function bean(x, y, w, h) { // 몸통 콩 모양
+  cx.beginPath(); cx.moveTo(x, y);
+  cx.bezierCurveTo(x + w * 0.38, y, x + w / 2, y + h * 0.3, x + w / 2, y + h * 0.62);
+  cx.bezierCurveTo(x + w / 2, y + h * 0.95, x + w * 0.3, y + h, x, y + h);
+  cx.bezierCurveTo(x - w * 0.3, y + h, x - w / 2, y + h * 0.95, x - w / 2, y + h * 0.62);
+  cx.bezierCurveTo(x - w / 2, y + h * 0.3, x - w * 0.38, y, x, y);
+}
+function drawPlayer() {
+  const g = G, f = fat(), bw = bodyW(), bh = 66 + f * 14, legH = 14, x = g.px, torsoY = FEET - legH - bh, sq = 1 + g.pulse * 0.07;
+  cx.save(); cx.translate(x, FEET); cx.scale(sq, 2 - sq); cx.translate(-x, -FEET);
+  cx.lineJoin = 'round'; cx.lineWidth = 3.5; cx.strokeStyle = '#3b1f12';
+  cx.fillStyle = 'rgba(80,50,20,.18)'; cx.beginPath(); cx.ellipse(x, FEET + 2, bw / 2 + 12, 7, 0, 0, 7); cx.fill();
+  for (const d of [-1, 1]) { // 다리 + 운동화
+    cx.fillStyle = '#46508a'; cx.beginPath(); cx.roundRect(x + d * (bw * 0.17) - 10, FEET - legH - 6, 20, legH + 2, 7); cx.fill(); cx.stroke();
+    cx.fillStyle = '#fff'; cx.beginPath(); cx.ellipse(x + d * (bw * 0.17) + d * 2, FEET - 1, 14, 7, 0, 0, 7); cx.fill(); cx.stroke();
+  }
+  bean(x, torsoY, bw, bh); cx.fillStyle = '#8dc63f'; cx.fill(); cx.stroke();
+  cx.save(); bean(x, torsoY, bw, bh); cx.clip(); cx.fillStyle = '#76ad2c'; cx.globalAlpha = .5; cx.fillRect(x + bw * 0.18, torsoY, bw, bh); cx.restore();
+  if (f > 0.55) { cx.fillStyle = '#ffd3b0'; cx.beginPath(); cx.ellipse(x, FEET - legH - 4, bw * 0.3, 5 + f * 6, 0, 0, 7); cx.fill(); cx.stroke(); } // 뱃살
+  cx.fillStyle = '#8a5a36'; for (let i = 0; i < 5; i++) { cx.beginPath(); cx.arc(x + bw * 0.12 + Math.cos(i * 1.257) * 5, torsoY + bh * 0.42 + Math.sin(i * 1.257) * 5, 3.4, 0, 7); cx.fill(); } // 꽃 프린트
+  for (const d of [-1, 1]) { // 팔 (입으로 음식 받아먹는 포즈)
+    const ax = x + d * (bw / 2 - 2), ay = torsoY + 22, up = g.pulse * 10;
+    cx.fillStyle = '#ffd3b0'; cx.beginPath(); cx.roundRect(ax - 8 + d * 2, ay - up, 16, 28, 8); cx.fill(); cx.stroke();
+    cx.fillStyle = '#8dc63f'; cx.beginPath(); cx.arc(ax + d * 2, ay - up + 3, 9, Math.PI, 0); cx.closePath(); cx.fill(); cx.stroke();
+  }
+  const pig = g.w >= 90, img = pig ? pigImg : faceImg, hw = (pig ? 112 : 92) * (1 + f * 0.2), hh = 104 * (1 + f * 0.05);
+  const hs = 1 + g.pulse * 0.1, hy = torsoY + 12, rot = g.hurt > 0 ? Math.sin(g.el * 40) * 0.08 : 0;
+  cx.translate(x, hy); cx.rotate(rot); cx.scale(hs, 1 / hs * (1 - g.pulse * 0.03) + g.pulse * 0.03);
+  if (img.complete && img.naturalWidth) cx.drawImage(img, -hw / 2, -hh, hw, hh);
+  cx.restore();
+}
+function draw() {
+  const g = G; cx.clearRect(0, 0, W, H);
+  const sky = cx.createLinearGradient(0, 0, 0, H); sky.addColorStop(0, '#fff3d6'); sky.addColorStop(1, '#ffe0b8'); cx.fillStyle = sky; cx.fillRect(0, 0, W, H);
+  cx.fillStyle = '#e9d29a'; cx.fillRect(0, FEET - 4, W, H - FEET + 4);
+  cx.textAlign = 'center'; cx.textBaseline = 'middle';
+  for (const it of g.items) {
+    cx.save(); cx.translate(it.x, it.y); cx.rotate(it.rot);
+    if (it.golden) { cx.shadowColor = '#ffb300'; cx.shadowBlur = 18; }
+    if (it.bad) { cx.shadowColor = '#26a69a'; cx.shadowBlur = 10; }
+    cx.font = `${it.s}px sans-serif`; cx.fillText(it.e, 0, 0);
+    if (it.golden) { cx.shadowBlur = 0; cx.font = '16px sans-serif'; cx.fillText('✨', 18, -16); }
+    cx.restore();
+  }
+  drawPlayer();
+  cx.font = '20px Jua, sans-serif';
+  for (const f of g.fx) { cx.globalAlpha = Math.min(1, f.life * 1.6); cx.lineWidth = 4; cx.strokeStyle = '#fff'; cx.strokeText(f.txt, f.x, f.y); cx.fillStyle = f.color; cx.fillText(f.txt, f.x, f.y); }
+  cx.globalAlpha = 1;
+  if (g.hurt > 0) { cx.fillStyle = `rgba(229,57,53,${g.hurt * 0.3})`; cx.fillRect(0, 0, W, H); }
+  if (g.combo >= 5) { cx.font = '22px Jua, sans-serif'; cx.fillStyle = '#e53935'; cx.strokeStyle = '#fff'; cx.lineWidth = 4; cx.strokeText(`${g.combo} COMBO!`, W / 2, 28); cx.fillText(`${g.combo} COMBO!`, W / 2, 28); }
+}
+
+// ── 입력: 건강한 음식은 탭해서 쳐내기, 그 외엔 드래그로 이동 ──
+let dragging = false;
+const pos = e => { const r = cv.getBoundingClientRect(), s = r.width / W; return [(e.clientX - r.left) / s, (e.clientY - r.top) / s]; };
+cv.addEventListener('pointerdown', e => {
+  e.preventDefault(); if (!G || G.phase !== 'play') return; cv.setPointerCapture?.(e.pointerId);
+  const [x, y] = pos(e); let best = null, bd = 1e9;
+  for (const it of G.items) if (it.bad && !it.dead) { const d = Math.hypot(it.x - x, it.y - y); if (d < 46 && d < bd) { best = it; bd = d; } }
+  if (best) { best.dead = true; G.swats++; Sfx.play('punch'); floatText(best.x, best.y, '쳐냄!', '#26a69a'); return; }
+  dragging = true; G.tx = x;
+});
+cv.addEventListener('pointermove', e => { if (dragging && G && G.phase === 'play') G.tx = pos(e)[0]; });
+const up = () => { dragging = false; };
+cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+['dblclick', 'gesturestart', 'contextmenu'].forEach(ev => document.addEventListener(ev, e => e.preventDefault()));
+document.addEventListener('touchmove', e => { if (e.target === cv) e.preventDefault(); }, { passive: false });
+
+// ── 종료/결과 ──
+const RANK = [[100, '🐷 돼지엔딩 달성'], [95, '🥩 먹방 레전드'], [85, '📺 먹방 유튜버'], [75, '🍖 먹방 신인'], [65, '🙂 입맛이 도는 중'], [0, '🥗 입맛 없는 금보']];
+function finish(why) {
+  const g = G; g.phase = 'over'; cancelAnimationFrame(raf); g.fx = []; hud(); draw();
+  const w = Math.round(g.w * 10) / 10, clear = why === 'win', used = Math.round(g.el);
+  const key = g.d, prev = best[key]; let newBest = false;
+  if (clear) { if (!prev || !prev.clear || used < prev.time) { best[key] = { clear: true, time: used, w: 100 }; newBest = true; } }
+  else if (!prev || (!prev.clear && w > prev.w)) { best[key] = { clear: false, w }; newBest = true; }
+  localStorage.setItem('hkm-best', JSON.stringify(best));
+  const rank = RANK.find(r => (clear ? 100 : w) >= r[0])[1];
+  say(clear ? 'win' : why === 'hearts' ? 'hearts' : 'time');
+  Sfx.play(clear ? 'fanfare' : 'fail'); if (clear) { window.confetti?.({ particleCount: 160, spread: 100, origin: { y: 0.4 }, zIndex: 30 }); setTimeout(() => Sfx.play('oink'), 700); }
+  const title = clear ? '돼지엔딩 달성!!' : why === 'hearts' ? '다이어트 당함 💔' : '시간 종료!';
+  const sub = clear ? `${used}초 만에 100kg 🐷` : why === 'hearts' ? '건강한 음식을 너무 많이 먹었다...' : '아쉽다, 100kg까지 조금만 더!';
+  const o = $('over'); o.className = 'ov on';
+  o.innerHTML = `${clear ? '<img src="img/pig.jpg" alt="">' : '<img src="img/face.png" alt="" style="max-height:26%">'}
+    <h2>${title}</h2><div class="big">${w.toFixed(1)}<small style="font-size:20px">kg</small></div>
+    <div class="tag">${rank}</div><p>${sub}<br>${DIFF[g.d].name} · 먹은 음식 ${g.eaten}개 · 최고 콤보 ${g.maxCombo} · 쳐낸 건강식 ${g.swats}개${newBest ? '<br><b>🏆 신기록!</b>' : ''}</p>
+    <div class="row two"><button class="go" id="again">🔄 다시 먹방<small>${DIFF[g.d].name}</small></button><button class="etc" id="share">📤 결과 공유<small>단톡방에 박제</small></button></div>
+    <div class="row"><button class="mid" id="back" style="font-size:15px;padding:7px">난이도 바꾸기</button></div>`;
+  $('again').onclick = () => newGame(g.d); $('back').onclick = () => { o.classList.remove('on'); showMenu(); };
+  $('share').onclick = () => shareCard({ clear, w, rank, used, why });
+}
+function showMenu() {
+  const l = Object.entries(DIFF).map(([k, d]) => { const b = best[k]; return b ? `${d.name} 최고: ${b.clear ? `🐷 ${b.time}초 클리어` : b.w.toFixed(1) + 'kg'}` : ''; }).filter(Boolean);
+  $('bestline').innerHTML = l.length ? l.join('<br>') : '첫 도전! 금보를 먹여 살리자 🍗';
+  $('menu').classList.add('on'); G = null; hud();
+}
+document.querySelectorAll('#diffs button').forEach(b => b.onclick = () => { Sfx.play('pop'); newGame(b.dataset.d); });
+
+// ── 공유 카드 (1080x1350 이미지) ──
+async function shareCard({ clear, w, rank, used, why }) {
+  await document.fonts.ready;
+  const c = document.createElement('canvas'); c.width = 1080; c.height = 1350; const x = c.getContext('2d');
+  const bg = x.createLinearGradient(0, 0, 0, 1350); bg.addColorStop(0, '#ffe9c7'); bg.addColorStop(1, '#ffd6e0'); x.fillStyle = bg; x.fillRect(0, 0, 1080, 1350);
+  const load = src => new Promise(r => { const i = new Image(); i.onload = () => r(i); i.src = src; });
+  const img = await load(clear ? 'img/pig.jpg' : 'img/face.png');
+  x.save(); x.beginPath(); x.roundRect(90, 160, 900, 640, 40); x.fillStyle = '#fff'; x.fill(); x.clip();
+  const k = clear ? Math.max(900 / img.width, 640 / img.height) : Math.min(900 / img.width, 600 / img.height);
+  x.drawImage(img, 540 - img.width * k / 2, clear ? 160 : 180, img.width * k, img.height * k); x.restore();
+  x.textAlign = 'center'; x.fillStyle = '#e85d75'; x.font = '64px Jua'; x.fillText('🍗 금보 먹방 받아먹기', 540, 110);
+  x.fillStyle = '#3b2a20'; x.font = '74px Jua'; x.fillText(clear ? `${used}초 만에 100kg 달성 🐷` : `금보 ${w.toFixed(1)}kg 먹방 종료`, 540, 890);
+  x.font = '48px Jua'; x.fillStyle = '#8e24aa'; x.fillText(rank, 540, 975);
+  x.fillStyle = '#3b2a20'; x.font = '42px Jua';
+  x.fillText(`${DIFF[G ? G.d : diff].name} · 먹은 음식 ${G.eaten}개 · 최고 콤보 ${G.maxCombo}`, 540, 1060);
+  x.fillText(`쳐낸 건강식 ${G.swats}개 · 다이어트 당한 횟수 ${G.healthyHit}번`, 540, 1120);
+  x.fillStyle = '#9a7a6a'; x.font = '34px Jua'; x.fillText('너도 금보 먹여봐 👉 ' + location.host + location.pathname, 540, 1300);
+  const blob = await new Promise(r => c.toBlob(r, 'image/png')), file = new File([blob], 'honggumbo-mukbang.png', { type: 'image/png' });
+  if (navigator.canShare && navigator.canShare({ files: [file] })) return navigator.share({ files: [file], text: `금보 먹방 ${w.toFixed(1)}kg 🍗 ${location.href}` }).catch(() => {});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'honggumbo-mukbang.png'; a.click();
+}
+
+// ── 도움말 / 음소거 ──
+$('mute').textContent = Sfx.muted ? '🔇' : '🔊'; $('mute').onclick = () => { $('mute').textContent = Sfx.toggle() ? '🔇' : '🔊'; };
+const openHelp = () => $('helpbox').showModal ? $('helpbox').showModal() : $('helpbox').setAttribute('open', '');
+$('help').onclick = openHelp; $('helpok').onclick = () => $('helpbox').close ? $('helpbox').close() : $('helpbox').removeAttribute('open');
+if (!localStorage.getItem('hkm-help')) { localStorage.setItem('hkm-help', '1'); openHelp(); }
+
+fit(); G = null; hud(); showMenu(); chat(['지코치님', '회원님 오늘도 먹방이신가요? 대체 살 언제 빼요?']);
+// 메뉴 뒤에 보일 금보 한 컷
+G = { w: 60, px: W / 2, tx: W / 2, items: [], fx: [], pulse: 0, hurt: 0, el: 0, combo: 0, hearts: 0, D: { hearts: 0, time: 75 }, t: 75, phase: 'menu' }; draw(); G = null;
+</script>
+</body>
+</html>
